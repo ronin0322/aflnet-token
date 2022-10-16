@@ -29,6 +29,8 @@ year={2020},}
 sudo apt-get install clang
 # Install graphviz development
 sudo apt-get install graphviz-dev
+# Install cap development
+sudo apt-get install libcap-dev
 ```
 
 ## AFLNet
@@ -57,6 +59,7 @@ export WORKDIR=$(pwd)
 ```bash
 export PATH=$PATH:$AFLNET
 export AFL_PATH=$AFLNET
+export AFL_NO_FORKSRV=1
 ```
 
 # Usage
