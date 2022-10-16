@@ -9,7 +9,8 @@ RUN apt-get -y update && \
     clang \
     graphviz-dev \
     git \
-    libgnutls-dev
+    libgnutls-dev \
+    libcap-dev
 
 # Add a new user ubuntu, pass: ubuntu
 RUN groupadd ubuntu && \
