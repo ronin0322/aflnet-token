@@ -9,7 +9,8 @@ RUN apt-get -y update && \
     clang \
     graphviz-dev \
     git \
-    libgnutls-dev
+    libgnutls-dev \
+    libcap-dev
 
 # Add a new user ubuntu, pass: ubuntu
 RUN groupadd ubuntu && \
@@ -22,8 +23,8 @@ WORKDIR /home/ubuntu
 # Download and compile AFLNet
 ENV LLVM_CONFIG="llvm-config-3.8"
 
-RUN git clone https://github.com/aflnet/aflnet && \
-    cd aflnet && \
+RUN git clone https://github.com/ronin0322/aflnetfast.git && \
+    cd aflnetfast && \
     make clean all && \
     cd llvm_mode make && make
 
