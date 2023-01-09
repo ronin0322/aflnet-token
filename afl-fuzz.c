@@ -2204,15 +2204,14 @@ static void update_bitmap_score(struct queue_entry* q) {
 
        if (top_rated[i]) {
 
-         /* AFLNet check unique state count first */
-
-         if (q->unique_state_count < top_rated[i]->unique_state_count) continue;
-
          u64 top_rated_fuzz_p2    = next_p2 (top_rated[i]->n_fuzz);
          u64 top_rated_fav_factor = top_rated[i]->exec_us * top_rated[i]->len;
 
          if (fuzz_p2 > top_rated_fuzz_p2) continue;
          else if (fuzz_p2 == top_rated_fuzz_p2) {
+          
+           /* AFLNet check unique state count first */
+           if (q->unique_state_count < top_rated[i]->unique_state_count) continue;
 
            if  ((q->unique_state_count == top_rated[i]->unique_state_count) && (fav_factor > top_rated_fav_factor)) continue;
 
