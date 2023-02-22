@@ -2202,30 +2202,35 @@ static void update_bitmap_score(struct queue_entry* q) {
 
     if (trace_bits[i]) {
 
-       if (top_rated[i]) {
+      if (top_rated[i]) {
+        
+        /* AFLNet check unique state count first */
+        if (q->unique_state_count < top_rated[i]->unique_state_count) continue;
+        
+        if (q->unique_state_count == top_rated[i]->unique_state_count) {
 
-         u64 top_rated_fuzz_p2    = next_p2 (top_rated[i]->n_fuzz);
-         u64 top_rated_fav_factor = top_rated[i]->exec_us * top_rated[i]->len;
+          u64 top_rated_fuzz_p2    = next_p2 (top_rated[i]->n_fuzz);
+          u64 top_rated_fav_factor = top_rated[i]->exec_us * top_rated[i]->len;
 
-         if (fuzz_p2 > top_rated_fuzz_p2) continue;
-         else if (fuzz_p2 == top_rated_fuzz_p2) {
+          if (fuzz_p2 > top_rated_fuzz_p2) continue;
+          else if (fuzz_p2 == top_rated_fuzz_p2) {
+
+            if (fav_factor > top_rated_fav_factor) continue;
+
+          }
           
-           /* AFLNet check unique state count first */
-           if (q->unique_state_count < top_rated[i]->unique_state_count) continue;
+          /* Looks like we're going to win. Decrease ref count for the
+              previous winner, discard its trace_bits[] if necessary. */
 
-           if  ((q->unique_state_count == top_rated[i]->unique_state_count) && (fav_factor > top_rated_fav_factor)) continue;
+          
 
-         }
-         
-         /* Looks like we're going to win. Decrease ref count for the
-            previous winner, discard its trace_bits[] if necessary. */
-
-         if (!--top_rated[i]->tc_ref) {
-           ck_free(top_rated[i]->trace_mini);
-           top_rated[i]->trace_mini = 0;
-         }
-
-       }
+        }
+        if (!--top_rated[i]->tc_ref) {
+            ck_free(top_rated[i]->trace_mini);
+            top_rated[i]->trace_mini = 0;
+          }
+      
+      }
 
        /* Insert ourselves as the new winner. */
 
