@@ -769,7 +769,8 @@ unsigned int choose_target_state(u8 mode) {
           state_cycles++;
         }
         break;
-      }      
+      }
+      prinf("[*]state_cycles : %d \n",state_cycles);
       stop_soon=1;
       result = update_scores_and_select_next_state(FAVOR);
       break;
