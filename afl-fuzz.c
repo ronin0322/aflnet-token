@@ -762,14 +762,13 @@ unsigned int choose_target_state(u8 mode) {
     case FAVOR:
       /* Do ROUND_ROBIN for a few cycles to get enough statistical information*/
       printf("[*]state_cycles : %d \n",state_cycles);
-      if (state_cycles < 5) {
+      if (state_cycles < 1) {
         result = state_ids[selected_state_index];
         selected_state_index++;
         if (selected_state_index == state_ids_count) {
           selected_state_index = 0;
           state_cycles++;
-        }
-        if (state_cycles == 1) stop_soon=1;
+        }        
         break;
       }
       result = update_scores_and_select_next_state(FAVOR);
