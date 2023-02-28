@@ -761,6 +761,7 @@ unsigned int choose_target_state(u8 mode) {
       break;
     case FAVOR:
       /* Do ROUND_ROBIN for a few cycles to get enough statistical information*/
+      printf("[*]state_cycles : %d \n",state_cycles);
       if (state_cycles < 5) {
         result = state_ids[selected_state_index];
         selected_state_index++;
@@ -768,10 +769,9 @@ unsigned int choose_target_state(u8 mode) {
           selected_state_index = 0;
           state_cycles++;
         }
+        if (state_cycles == 1) stop_soon=1;
         break;
       }
-      printf("[*]state_cycles : %d \n",state_cycles);
-      stop_soon=1;
       result = update_scores_and_select_next_state(FAVOR);
       break;
     default:
@@ -6197,7 +6197,7 @@ AFLNET_REGIONS_SELECTION:;
    *********************/
 
   orig_perf = perf_score = calculate_score(queue_cur);
-
+  /* higher perf_score more times mutate*/
   if (perf_score == 0 && queued_paths > 10) goto abandon_entry;
 
   /* Skip right away if -d is given, if it has not been chosen sufficiently
