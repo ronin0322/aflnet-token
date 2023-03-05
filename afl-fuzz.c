@@ -6099,11 +6099,11 @@ u8 find_in_dic(u8 *buf , u32 start, u32 end , u8 *max_size  , struct dictionary*
         memmove(val_dic->str[val_dic->cnt++] , words , end - start);
 
         index = dic.cnt + val_dic->cnt;
-        if (val_dic->cnt >=*max_size) {
-           *max_size = *max_size * 2;
-            val_dic->str = ck_realloc(val_dic->str ,*max_size);
-            val_dic->str_cnt = ck_realloc(val_dic->str_cnt ,*max_size);
-        }
+        // if (val_dic->cnt >=*max_size) {
+        //    *max_size = *max_size * 2;
+        //     val_dic->str = ck_realloc(val_dic->str ,*max_size);
+        //     val_dic->str_cnt = ck_realloc(val_dic->str_cnt ,*max_size);
+        // }
     }
     ck_free(words);
     return index;
