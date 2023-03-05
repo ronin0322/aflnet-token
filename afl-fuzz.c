@@ -6082,7 +6082,7 @@ u8 find_in_dic(u8 *buf , u32 start, u32 end , u8 *max_size  , struct dictionary*
     }
     if (!index )
         for (u32 i = 0 ; i < val_dic->cnt; i++) {
-            
+
             if ( end - start ==  val_dic->str_cnt[i] && memcmp(val_dic->str[i], words , end - start) == 0 ){
 
                 index = i + dic.cnt + 1 ;
@@ -6099,11 +6099,11 @@ u8 find_in_dic(u8 *buf , u32 start, u32 end , u8 *max_size  , struct dictionary*
         memmove(val_dic->str[val_dic->cnt++] , words , end - start);
 
         index = dic.cnt + val_dic->cnt;
-        if (val_dic->cnt >=*max_size) {
-           *max_size = *max_size * 2;
-            val_dic->str = ck_realloc(val_dic->str ,*max_size);
-            val_dic->str_cnt = ck_realloc(val_dic->str_cnt ,*max_size);
-        }
+        // if (val_dic->cnt >=*max_size) {
+        //    *max_size = *max_size * 2;
+        //     val_dic->str = ck_realloc(val_dic->str ,*max_size);
+        //     val_dic->str_cnt = ck_realloc(val_dic->str_cnt ,*max_size);
+        // }
     }
     ck_free(words);
     return index;
@@ -6193,10 +6193,10 @@ void decode(u8 **buf , s32 *len , u32 *max_size  ,struct dictionary* val_dic ,u8
         s32 words_len = 0;    
         words =  str_in_dic((*buf)[i] , &words_len  , val_dic);
 
-        if (words_len + cnt >=*max_size ) {
-           *max_size =*max_size * 2;
-            res = ck_realloc(res ,*max_size);
-        }
+        // if (words_len + cnt >=*max_size ) {
+        //    *max_size =*max_size * 2;
+        //     res = ck_realloc(res ,*max_size);
+        // }
 
         memmove(res + cnt, words , words_len);
         cnt += words_len;
