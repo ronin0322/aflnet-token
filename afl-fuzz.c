@@ -5791,8 +5791,8 @@ static u32 calculate_score(struct queue_entry* q) {
 
       fuzz_mu = fuzz_total / n_paths;
       if (fuzz <= fuzz_mu) {
-        if (q->fuzz_level < 16)
-          factor = ((u32) (1 << q->fuzz_level));
+        if (q->unique_state_count < 16)
+          factor = ((u32) (1 << q->unique_state_count));
         else 
           factor = MAX_FACTOR;
       } else {
@@ -5801,18 +5801,18 @@ static u32 calculate_score(struct queue_entry* q) {
       break;
     
     case FAST:
-      if (q->fuzz_level < 16) {
-         factor = ((u32) (1 << q->fuzz_level)) / (fuzz == 0 ? 1 : fuzz); 
+      if (q->unique_state_count < 16) {
+         factor = ((u32) (1 << q->unique_state_count)) / (fuzz == 0 ? 1 : fuzz); 
       } else
         factor = MAX_FACTOR / (fuzz == 0 ? 1 : next_p2 (fuzz));
       break;
 
     case LIN:
-      factor = q->fuzz_level / (fuzz == 0 ? 1 : fuzz); 
+      factor = q->unique_state_count / (fuzz == 0 ? 1 : fuzz); 
       break;
 
     case QUAD:
-      factor = q->fuzz_level * q->fuzz_level / (fuzz == 0 ? 1 : fuzz);
+      factor = q->unique_state_count * q->unique_state_count / (fuzz == 0 ? 1 : fuzz);
       break;
 
     default:
