@@ -761,7 +761,7 @@ unsigned int choose_target_state(u8 mode) {
       break;
     case FAVOR:
       /* Do ROUND_ROBIN for a few cycles to get enough statistical information*/
-      if (state_cycles < 5) {
+      if (state_cycles < 1) {
         result = state_ids[selected_state_index];
         selected_state_index++;
         if (selected_state_index == state_ids_count) {
@@ -1170,6 +1170,7 @@ int send_over_network()
   messages_sent = 0;
 
   for (it = kl_begin(kl_messages); it != kl_end(kl_messages); it = kl_next(it)) {
+
     n = net_send(sockfd, timeout, kl_val(it)->mdata, kl_val(it)->msize);
     messages_sent++;
 
@@ -3669,8 +3670,7 @@ static void perform_dry_run(char** argv) {
 
   struct queue_entry* q = queue;
   u32 cal_failures = 0;
-  u8* skip_crashes = getenv("AFL_SKIP_CRASHES");
-
+  u8* skip_crashes = getenv("AFL_SKIP_CRASHES");  
   while (q) {
 
     u8* use_mem;
@@ -3682,7 +3682,6 @@ static void perform_dry_run(char** argv) {
     u8* fn = strrchr(q->fname, '/') + 1;
 
     ACTF("Attempting dry run with '%s'...", fn);
-
     fd = open(q->fname, O_RDONLY);
     if (fd < 0) PFATAL("Unable to open '%s'", q->fname);
 
@@ -5792,8 +5791,8 @@ static u32 calculate_score(struct queue_entry* q) {
 
       fuzz_mu = fuzz_total / n_paths;
       if (fuzz <= fuzz_mu) {
-        if (q->fuzz_level < 16)
-          factor = ((u32) (1 << q->fuzz_level));
+        if (q->unique_state_count < 16)
+          factor = ((u32) (1 << q->unique_state_count));
         else 
           factor = MAX_FACTOR;
       } else {
@@ -5802,18 +5801,18 @@ static u32 calculate_score(struct queue_entry* q) {
       break;
     
     case FAST:
-      if (q->fuzz_level < 16) {
-         factor = ((u32) (1 << q->fuzz_level)) / (fuzz == 0 ? 1 : fuzz); 
+      if (q->unique_state_count < 16) {
+         factor = ((u32) (1 << q->unique_state_count)) / (fuzz == 0 ? 1 : fuzz); 
       } else
         factor = MAX_FACTOR / (fuzz == 0 ? 1 : next_p2 (fuzz));
       break;
 
     case LIN:
-      factor = q->fuzz_level / (fuzz == 0 ? 1 : fuzz); 
+      factor = q->unique_state_count / (fuzz == 0 ? 1 : fuzz); 
       break;
 
     case QUAD:
-      factor = q->fuzz_level * q->fuzz_level / (fuzz == 0 ? 1 : fuzz);
+      factor = q->unique_state_count * q->unique_state_count / (fuzz == 0 ? 1 : fuzz);
       break;
 
     default:
@@ -6017,7 +6016,215 @@ static u8 could_be_interest(u32 old_val, u32 new_val, u8 blen, u8 check_le) {
 
 }
 
+#define IS_WORD(chr) ((chr >= 'a' && chr <= 'z') || (chr >= 'A' && chr <= 'Z'))
+typedef struct dictionary {
+    u8 **str ;
+    u32 *str_cnt ;
+    u32 cnt;
+};
+struct dictionary dic={
+    .cnt = 0
+};
 
+
+void get_token_dict() {
+    char *buf = NULL;
+    size_t len = 0;
+    ssize_t r;
+
+    FILE *fp = fopen("../../../token", "r");
+
+    if (fp == NULL) exit(-1);
+    
+    while((r = getline(&buf, &len, fp)) != -1){
+
+        if (len <= 3) break;
+        char *t = NULL;
+        int idx = 0;
+        u8* buff = NULL;
+        t = strtok_r(buf, " " ,&buff);
+        idx = atoi(strtok_r(NULL, " ",&buff));
+
+        u32 len_str = strlen(t);
+        dic.str_cnt[idx] = len_str;
+        dic.str[idx] = ck_alloc((dic.str_cnt[idx]+1) * sizeof(u8));
+        strcpy((char *)dic.str[idx], t);
+        dic.cnt++;
+        // if (dic->cnt >= *max_size) {
+        //    *max_size = *max_size * 2;
+        //     dic->str = ck_realloc(dic->str ,*max_size * sizeof(u8));
+        //     dic->str_cnt = ck_realloc(dic->str_cnt ,*max_size * sizeof(u32));
+        // }
+    }
+
+    fclose(fp);
+}
+
+void init_token_parse(){
+    dic.cnt = 0;
+    dic.str = ck_alloc(1024 * sizeof(u8*));
+    dic.str_cnt = ck_alloc(1024 * sizeof(u32) );
+    get_token_dict();
+}
+
+u8 find_in_dic(u8 *buf , u32 start, u32 end , u8 *max_size  , struct dictionary* val_dic ){
+    u8 index = 0;
+    u8 *words = NULL;    
+    words = ck_alloc((end - start) * sizeof(u8) );
+    memmove(words , buf + start , end - start );
+
+    for (u32 i = 1 ; i <= dic.cnt; i++) {
+
+        if ( end - start ==  dic.str_cnt[i] && memcmp(dic.str[i] , words , end - start ) == 0 ){
+            index = i ;
+            break;
+        }
+    }
+    if (!index )
+        for (u32 i = 0 ; i < val_dic->cnt; i++) {
+            
+            if ( end - start ==  val_dic->str_cnt[i] && memcmp(val_dic->str[i], words , end - start) == 0 ){
+
+                index = i + dic.cnt + 1 ;
+                break;
+            }
+        }    
+
+    if (index == 0) {
+
+        val_dic->str[val_dic->cnt] = ck_alloc((end - start) * sizeof(u8));
+
+        val_dic->str_cnt[val_dic->cnt] = end - start;
+
+        memmove(val_dic->str[val_dic->cnt++] , words , end - start);
+
+        index = dic.cnt + val_dic->cnt;
+        // if (val_dic->cnt >=*max_size) {
+        //    *max_size = *max_size * 2;
+        //     val_dic->str = ck_realloc(val_dic->str ,*max_size);
+        //     val_dic->str_cnt = ck_realloc(val_dic->str_cnt ,*max_size);
+        // }
+    }
+    ck_free(words);
+    return index;
+}
+
+
+u8 parse_token(u32 *idx , u8 *buf , s32 *len , u8 *max_size  ,struct dictionary* val_dic ){    
+    u32 start = *idx;
+    for ( ; *idx < *len; (*idx)++) {
+        if (!IS_WORD(buf[*idx]) ) {
+            break;
+        }
+    }
+
+    return find_in_dic(buf, start, *idx ,max_size, val_dic);
+}
+
+u8 parse_other(u32 *idx , u8 *buf , s32 *len , u8 *max_size  , struct dictionary* val_dic ){
+    (*idx) ++ ;
+    u8 res = find_in_dic(buf, (*idx)-1, *idx ,max_size, val_dic);
+    return res;
+}
+
+
+void encode(u8 **buf , s32 *len , u32 *max_size  ,struct dictionary* val_dic ,u8 **new_buf ) {
+    
+    val_dic->cnt = 0;
+    val_dic->str = ck_alloc((*max_size) * sizeof(u8*));
+    val_dic->str_cnt = ck_alloc((*max_size) * sizeof(u32));
+
+    u32 idx = 0;    
+    u8 *res = NULL;
+    res = ck_alloc(*len * sizeof(u8));    
+    u32 res_len = 0;
+    for ( idx = 0 ; idx < *len ;  ){
+        if (IS_WORD((*buf)[idx]) ){
+            res[res_len++] = parse_token(&idx, *buf, len,max_size, val_dic);
+
+        }else {
+            res[res_len++] = parse_other(&idx, *buf, len,max_size, val_dic);
+
+        }
+    }
+
+    ck_free(*buf);
+    res = ck_realloc(res , res_len);
+    *new_buf = res;
+    *len = res_len;
+}
+
+u8 *str_in_dic(u32 idx , s32 *words_len  ,struct dictionary* val_dic){
+    *words_len = 2;
+    u8* words = NULL;
+    if (idx <= 0 ) {
+      words = ck_alloc(2);
+      memmove(words , " " , 2);
+      return words;
+    } 
+
+    if (idx <= dic.cnt)  {
+        *words_len = dic.str_cnt[idx];
+        words = ck_alloc(dic.str_cnt[idx] * sizeof(u8));
+        memmove(words , dic.str[idx] , dic.str_cnt[idx]);
+        return words;
+    }
+
+    if (idx <= dic.cnt + val_dic->cnt) {
+        *words_len = val_dic->str_cnt[idx - dic.cnt - 1];
+        words = ck_alloc(val_dic->str_cnt[idx - dic.cnt - 1] * sizeof(u8));
+        memmove(words , val_dic->str[idx - dic.cnt - 1] , val_dic->str_cnt[idx - dic.cnt - 1]);
+        return words;
+    }
+
+    words = ck_alloc(2);
+    memmove(words , " " , 2);
+    return words;
+}
+
+void decode(u8 **buf , s32 *len , u32 *max_size  ,struct dictionary* val_dic ,u8 **new_buf){
+
+    u8 *res = NULL;
+    res = ck_alloc(*max_size * sizeof(u8));
+    u32 cnt = 0;
+    u8 *words = NULL;
+    for (s32 i=0; i < *len ; i++ ){
+
+        s32 words_len = 0;    
+        words =  str_in_dic((*buf)[i] , &words_len  , val_dic);
+
+        if (words_len + cnt >=*max_size ) {
+           *max_size =*max_size * 2;
+            res = ck_realloc(res ,*max_size);
+        }
+
+        memmove(res + cnt, words , words_len);
+        cnt += words_len;
+        if (words) ck_free(words);
+    }
+    res = ck_realloc(res , cnt);
+
+    ck_free(*buf);
+    *new_buf = res ;
+    *len = cnt;
+
+    clean( val_dic);
+}
+
+void clean(struct dictionary* val_dic){
+    for(int i=0;i<val_dic->cnt;i++){
+        if (val_dic->str[i])  ck_free(val_dic->str[i]);
+    }
+    if (val_dic->str)  ck_free(val_dic->str);
+    if (val_dic->str_cnt)  ck_free(val_dic->str_cnt);
+}
+void clean_token_parse(){
+    for(int i=1;i<=dic.cnt;i++){
+         ck_free(dic.str[i]);
+    }
+    if (dic.str)  ck_free(dic.str);
+    if (dic.str_cnt)  ck_free(dic.str_cnt);
+}
 /* Take the current entry from the queue, fuzz it for a while. This
    function is a tad too long... returns 0 if fuzzed successfully, 1 if
    skipped or bailed out. */
@@ -7012,7 +7219,7 @@ skip_interest:
   /********************
    * DICTIONARY STUFF *
    ********************/
-
+ //printf("[*] extras_cnt:%d \n",extras_cnt);
   if (!extras_cnt) goto skip_user_extras;
 
   /* Overwrite with user-supplied extras. */
@@ -7066,7 +7273,8 @@ skip_interest:
     /* Restore all the clobbered memory. */
     memcpy(out_buf + i, in_buf + i, last_len);
 
-  }
+  }  
+
 
   new_hit_cnt = queued_paths + unique_crashes;
 
@@ -7231,8 +7439,7 @@ havoc_stage:
 
     for (i = 0; i < use_stacking; i++) {
 
-      switch (UR(15 + 2 + (region_level_mutation ? 4 : 0))) {
-
+       switch (UR(15 + 2 + (region_level_mutation ? 4 : 0))) {
         case 0:
 
           /* Flip a single bit somewhere. Spooky! */
@@ -7512,90 +7719,85 @@ havoc_stage:
 
         case 15: {
             if (extras_cnt + a_extras_cnt == 0) break;
+            u8* new_buf = NULL;
+            struct dictionary *val_dic;
+            val_dic = ck_alloc(sizeof(struct dictionary));
+            u32 max_size = 1024;
 
-            /* Overwrite bytes with an extra. */
+            /* Overwrite token with an extra. */
+            new_buf = ck_alloc_nozero(temp_len);
+            memmove(new_buf , out_buf , temp_len);
+            s32 encode_len = temp_len;
 
-            if (!extras_cnt || (a_extras_cnt && UR(2))) {
+            encode(&new_buf,&encode_len, &max_size , val_dic , &new_buf);
 
-              /* No user-specified extras or odds in our favor. Let's use an
-                 auto-detected one. */
+            s32 encode_l = 0,encode_r = encode_len;            
+            s32 new_encode_l = -1;
+            s32 ur_time = 0;
 
-              u32 use_extra = UR(a_extras_cnt);
-              u32 extra_len = a_extras[use_extra].len;
-              u32 insert_at;
-
-              if (extra_len > temp_len) break;
-
-              insert_at = UR(temp_len - extra_len + 1);
-              memcpy(out_buf + insert_at, a_extras[use_extra].data, extra_len);
-
-            } else {
-
-              /* No auto extras or odds in our favor. Use the dictionary. */
-
-              u32 use_extra = UR(extras_cnt);
-              u32 extra_len = extras[use_extra].len;
-              u32 insert_at;
-
-              if (extra_len > temp_len) break;
-
-              insert_at = UR(temp_len - extra_len + 1);
-              memcpy(out_buf + insert_at, extras[use_extra].data, extra_len);
-
+            while (new_encode_l == -1 || (new_buf[new_encode_l] >= extras_cnt && ur_time < encode_r - encode_l) ){
+              new_encode_l = encode_l + UR(encode_r - encode_l);
+              ur_time++;
             }
+              
+            new_buf[new_encode_l] = UR(extras_cnt);
+
+            decode(&new_buf,&encode_len , &max_size  , val_dic , &new_buf);
+            if (encode_len > temp_len) out_buf = ck_realloc(out_buf , encode_len);
+            memmove(out_buf , new_buf , encode_len);
+            ck_free(new_buf);
+            ck_free(val_dic);
+            
+            temp_len = encode_len;
 
             break;
 
           }
 
         case 16: {
+
             if (extras_cnt + a_extras_cnt == 0) break;
+            if (!out_buf) break;
+            struct dictionary *val_dic;
+            val_dic = ck_alloc(sizeof(struct dictionary));
+            u8* new_buf = NULL;
+            u32 max_size = 1024;
+            s32 encode_len = temp_len;
 
-            u32 use_extra, extra_len, insert_at = UR(temp_len + 1);
-            u8* new_buf;
+            /* insert token with an extra. */
+            new_buf = ck_alloc_nozero(temp_len);
+            memmove(new_buf , out_buf , temp_len);
+            encode(&new_buf,&encode_len, &max_size , val_dic ,&new_buf);
 
-            /* Insert an extra. Do the same dice-rolling stuff as for the
-               previous case. */
+            s32 encode_l = 0,encode_r = encode_len;            
+            s32 new_encode_l;
+            u8* new_buf1 = NULL;
+            s32 random_cnt = UR(extras_cnt),zero1=0,zero2=0;
+            if (encode_len > 0 ){
 
-            if (!extras_cnt || (a_extras_cnt && UR(2))) {
+            new_buf1 = ck_alloc((encode_len + 5) *sizeof(u8));
+            new_encode_l = encode_l + UR(encode_r - encode_l);
+            
+            memmove(new_buf1, new_buf, new_encode_l);
 
-              use_extra = UR(a_extras_cnt);
-              extra_len = a_extras[use_extra].len;
-
-              if (temp_len + extra_len >= MAX_FILE) break;
-
-              new_buf = ck_alloc_nozero(temp_len + extra_len);
-
-              /* Head */
-              memcpy(new_buf, out_buf, insert_at);
-
-              /* Inserted part */
-              memcpy(new_buf + insert_at, a_extras[use_extra].data, extra_len);
-
-            } else {
-
-              use_extra = UR(extras_cnt);
-              extra_len = extras[use_extra].len;
-
-              if (temp_len + extra_len >= MAX_FILE) break;
-
-              new_buf = ck_alloc_nozero(temp_len + extra_len);
-
-              /* Head */
-              memcpy(new_buf, out_buf, insert_at);
-
-              /* Inserted part */
-              memcpy(new_buf + insert_at, extras[use_extra].data, extra_len);
-
+            memmove(new_buf1 + new_encode_l, &zero1, (u8)1);
             }
 
-            /* Tail */
-            memcpy(new_buf + insert_at + extra_len, out_buf + insert_at,
-                   temp_len - insert_at);
+            memmove(new_buf1 + new_encode_l+1, &random_cnt, (u8)1);
+            memmove(new_buf1 + new_encode_l+2, &zero2, (u8)1);
+            memmove(new_buf1 + new_encode_l + 3, new_buf + new_encode_l, encode_len - new_encode_l);
+            
+            encode_len+=3;
 
-            ck_free(out_buf);
-            out_buf   = new_buf;
-            temp_len += extra_len;
+            ck_free(new_buf);
+            decode(&new_buf1,&encode_len , &max_size , val_dic ,&new_buf1);
+
+           if (encode_len > temp_len) out_buf = ck_realloc(out_buf , encode_len);
+            memmove(out_buf , new_buf1 , encode_len);
+            ck_free(new_buf1);
+            ck_free(val_dic);
+
+            temp_len = encode_len;
 
             break;
 
@@ -7688,11 +7890,10 @@ havoc_stage:
 
     /* out_buf might have been mangled a bit, so let's restore it to its
        original size and shape. */
-
-    if (temp_len < len) out_buf = ck_realloc(out_buf, len);
+    
+    if (temp_len < len) out_buf = ck_realloc(out_buf, len);    
     temp_len = len;
-    memcpy(out_buf, in_buf, len);
-
+    memcpy(out_buf, in_buf, len);    
     /* If we're finding new stuff, let's run for a bit longer, limits
        permitting. */
 
@@ -7768,8 +7969,7 @@ retry_splicing:
 
     if (!target) goto retry_splicing;
 
-    /* Read the testcase into a new buffer. */
-
+    /* Read the testcase into a new buffer. */    
     fd = open(target->fname, O_RDONLY);
 
     if (fd < 0) PFATAL("Unable to open '%s'", target->fname);
@@ -7778,8 +7978,7 @@ retry_splicing:
 
     ck_read(fd, new_buf, target->len, target->fname);
 
-    close(fd);
-
+    close(fd);    
     /* Find a suitable splicing location, somewhere between the first and
        the last differing byte. Bail out if the difference is just a single
        byte or so. */
@@ -9483,13 +9682,12 @@ int main(int argc, char** argv) {
   if (stop_soon) goto stop_fuzzing;
 
   /* Woop woop woop */
-
+  init_token_parse();
   if (!not_on_tty) {
     sleep(4);
     start_time += 4000;
     if (stop_soon) goto stop_fuzzing;
   }
-
   if (state_aware_mode) {
 
     if (state_ids_count == 0) {
@@ -9642,7 +9840,7 @@ stop_fuzzing:
            "    (For info on resuming, see %s/README.)\n", doc_path);
 
   }
-
+  clean_token_parse();
   fclose(plot_file);
   destroy_queue();
   destroy_extras();
