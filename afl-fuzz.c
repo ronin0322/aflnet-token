@@ -245,7 +245,7 @@ static s32 cpu_core_count;            /* CPU core count                   */
 
 #ifdef HAVE_AFFINITY
 
-static s32 cpu_aff = -1;       	      /* Selected CPU core                */
+static s32 cpu_aff = -1;               /* Selected CPU core                */
 
 #endif /* HAVE_AFFINITY */
 
@@ -480,7 +480,7 @@ char **was_fuzzed_map = NULL; /* A 2D array keeping state-specific was_fuzzed in
 u32 fuzzed_map_states = 0;
 u32 fuzzed_map_qentries = 0;
 u32 max_seed_region_count = 0;
-u32 local_port;		/* TCP/UDP port number to use as source */
+u32 local_port;    /* TCP/UDP port number to use as source */
 
 /* flags */
 u8 use_net = 0;
@@ -894,9 +894,9 @@ void update_state_aware_variables(struct queue_entry *q, u8 dry_run)
         //Check if the prevStateID and curStateID have been added to the state machine as vertices
         //Check also if the edge prevStateID->curStateID has been added
         Agnode_t *from, *to;
-		    Agedge_t *edge;
-		    from = agnode(ipsm, fromState, FALSE);
-		    if (!from) {
+        Agedge_t *edge;
+        from = agnode(ipsm, fromState, FALSE);
+        if (!from) {
           //Add a node to the graph
           from = agnode(ipsm, fromState, TRUE);
           if (dry_run) agset(from,"color","blue");
@@ -925,8 +925,8 @@ void update_state_aware_variables(struct queue_entry *q, u8 dry_run)
           if (prevStateID != 0) expand_was_fuzzed_map(1, 0);
         }
 
-		    to = agnode(ipsm, toState, FALSE);
-		    if (!to) {
+        to = agnode(ipsm, toState, FALSE);
+        if (!to) {
           //Add a node to the graph
           to = agnode(ipsm, toState, TRUE);
           if (dry_run) agset(to,"color","blue");
@@ -956,13 +956,13 @@ void update_state_aware_variables(struct queue_entry *q, u8 dry_run)
         }
 
         //Check if an edge from->to exists
-		    edge = agedge(ipsm, from, to, NULL, FALSE);
-		    if (!edge) {
+        edge = agedge(ipsm, from, to, NULL, FALSE);
+        if (!edge) {
           //Add an edge to the graph
-			    edge = agedge(ipsm, from, to, "new_edge", TRUE);
+          edge = agedge(ipsm, from, to, "new_edge", TRUE);
           if (dry_run) agset(edge, "color", "blue");
           else agset(edge, "color", "red");
-		    }
+        }
 
         //Update prevStateID
         prevStateID = curStateID;
@@ -5782,7 +5782,7 @@ static u32 calculate_score(struct queue_entry* q) {
       fuzz_total = 0;
       n_paths = 0;
 
-      struct queue_entry *queue_it = queue;	
+      struct queue_entry *queue_it = queue;  
       while (queue_it) {
         fuzz_total += queue_it->n_fuzz;
         n_paths ++;
@@ -6067,7 +6067,7 @@ void init_token_parse(){
     get_token_dict();
 }
 
-u8 find_in_dic(u8 *buf , u32 start, u32 end , u8 *max_size  , struct dictionary* val_dic ){
+u8 find_in_dic(u8 *buf , u32 start, u32 end , u32 *max_size  , struct dictionary* val_dic ){
     u8 index = 0;
     u8 *words = NULL;    
     words = ck_alloc((end - start) * sizeof(u8) );
@@ -6099,18 +6099,20 @@ u8 find_in_dic(u8 *buf , u32 start, u32 end , u8 *max_size  , struct dictionary*
         memmove(val_dic->str[val_dic->cnt++] , words , end - start);
 
         index = dic.cnt + val_dic->cnt;
-        // if (val_dic->cnt >=*max_size) {
-        //    *max_size = *max_size * 2;
-        //     val_dic->str = ck_realloc(val_dic->str ,*max_size);
-        //     val_dic->str_cnt = ck_realloc(val_dic->str_cnt ,*max_size);
-        // }
+        if (val_dic->cnt >=*max_size / 2) {
+          while (val_dic->cnt >=*max_size / 2){
+            *max_size = *max_size * 2;
+          }
+          val_dic->str = ck_realloc(val_dic->str ,*max_size);
+          val_dic->str_cnt = ck_realloc(val_dic->str_cnt ,*max_size);
+        }
     }
     ck_free(words);
     return index;
 }
 
 
-u8 parse_token(u32 *idx , u8 *buf , s32 *len , u8 *max_size  ,struct dictionary* val_dic ){    
+u8 parse_token(u32 *idx , u8 *buf , s32 *len , u32 *max_size  ,struct dictionary* val_dic ){    
     u32 start = *idx;
     for ( ; *idx < *len; (*idx)++) {
         if (!IS_WORD(buf[*idx]) ) {
@@ -6121,7 +6123,7 @@ u8 parse_token(u32 *idx , u8 *buf , s32 *len , u8 *max_size  ,struct dictionary*
     return find_in_dic(buf, start, *idx ,max_size, val_dic);
 }
 
-u8 parse_other(u32 *idx , u8 *buf , s32 *len , u8 *max_size  , struct dictionary* val_dic ){
+u8 parse_other(u32 *idx , u8 *buf , s32 *len , u32 *max_size  , struct dictionary* val_dic ){
     (*idx) ++ ;
     u8 res = find_in_dic(buf, (*idx)-1, *idx ,max_size, val_dic);
     return res;
@@ -6193,9 +6195,11 @@ void decode(u8 **buf , s32 *len , u32 *max_size  ,struct dictionary* val_dic ,u8
         s32 words_len = 0;    
         words =  str_in_dic((*buf)[i] , &words_len  , val_dic);
 
-        if (words_len + cnt >=*max_size ) {
-           *max_size =*max_size * 2;
-            res = ck_realloc(res ,*max_size);
+        if (words_len + cnt >=*max_size / 2 ) {
+          while (words_len + cnt >=*max_size / 2){
+            *max_size =*max_size * 2;
+          }
+          res = ck_realloc(res ,*max_size);
         }
 
         memmove(res + cnt, words , words_len);
@@ -6225,6 +6229,233 @@ void clean_token_parse(){
     if (dic.str)  ck_free(dic.str);
     if (dic.str_cnt)  ck_free(dic.str_cnt);
 }
+
+/* Fuzzing havoc stages */
+
+enum {
+  /* 00 */ HAVOC_FLIP1,
+  /* 01 */ HAVOC_INTEREST8,
+  /* 02 */ HAVOC_INTEREST16,
+  /* 03 */ HAVOC_INTEREST32,
+  /* 04 */ HAVOC_ARITH8_SUB,
+  /* 05 */ HAVOC_ARITH8_ADD,
+  /* 06 */ HAVOC_ARITH16_SUB,
+  /* 07 */ HAVOC_ARITH16_ADD,
+  /* 08 */ HAVOC_ARITH32_SUB,
+  /* 09 */ HAVOC_ARITH32_ADD,
+  /* 10 */ HAVOC_RANDOMBYTE,
+  /* 11 */ HAVOC_DELETEBYTE,
+  /* 12 */ HAVOC_CLONE75,
+  /* 13 */ HAVOC_OVERWRITE75,
+  /* 14 */ HAVOC_OVERWRITETOKEN,
+  /* 15 */ HAVOC_INSERTTOKEN,
+  /* 16 */ HAVOC_REPLACEREGION,
+  /* 17 */ HAVOC_INSERTREGIONBEG,
+  /* 18 */ HAVOC_INSERTREGIONEND,
+  /* 19 */ HAVOC_DUPLICATEGIONEND,
+  /* 20 */ HAVOC_OVERWRITEDIC,
+  /* 21 */ HAVOC_INSERTDIC
+};
+
+#define MAX_FFA  22
+#define FA_LIMIT  400
+
+int Index[MAX_FFA];             // sort of fireflies according to fitness values
+
+double ffa[MAX_FFA];     // firefly agents
+double ffa_tmp[MAX_FFA]; // intermediate population
+double f[MAX_FFA];              // fitness values
+double light[MAX_FFA];              // light intensity
+double lb = 0.5;               // lower bound
+double ub = 5.0;               // upper bound
+
+double alpha = 0.5;       // alpha parameter
+double beta0 = 1.0;
+double gama = 4.0;      // gamma parameter
+double delta = 0.99;
+s32 havoc_time = 0;
+
+static u64 havoc_finds_number[MAX_FFA],           /* Patterns found per fuzz stage    */
+           havoc_finds_number_v2[MAX_FFA],
+           havoc_cycles_number_v2[MAX_FFA],
+           havoc_cycles_number_v3[MAX_FFA],
+           havoc_cycles_number[MAX_FFA];
+
+static FILE* ffa_file;
+
+EXP_ST void init_ffa_wirte_file(void) {
+
+  u8* tmp;
+  s32 fd , i;
+
+  tmp = alloc_printf("%s/fuzz_ffa", out_dir);
+  fd = open(tmp, O_WRONLY | O_CREAT | O_EXCL, 0600);
+  if (fd < 0) PFATAL("Unable to create '%s'", tmp);
+  ck_free(tmp);
+
+  ffa_file = fdopen(fd, "a");
+  if (!ffa_file) PFATAL("fdopen() failed");
+  fprintf(ffa_file, "ffa data\n");
+}
+
+
+// initialize the firefly population
+void init_ffa()
+{
+  int i, j;
+  double r;
+
+  // initialize upper and lower bounds
+
+  for (i=0;i<MAX_FFA;i++)
+  {
+
+    ffa[i] = lb;
+    f[i] = -1.0;      // initialize attractiveness
+    light[i] = f[i] / ffa[i];
+
+    havoc_finds_number[i] = 0;
+    havoc_finds_number_v2[i] = 0;
+    havoc_cycles_number[i] = 0;
+    havoc_cycles_number_v2[i] = 0;
+    havoc_cycles_number_v3[i] = 0;
+  }
+  init_ffa_wirte_file();
+
+}
+
+// optionally recalculate the new alpha value
+double alpha_new(double alpha)
+{
+  alpha *= delta;
+  return alpha;
+}
+
+
+void findlimits(int k)
+{
+
+    if(ffa[k] < lb)
+      ffa[k] = lb;
+    if(ffa[k] > ub)
+      ffa[k] = ub;
+  
+}
+
+void move_ffa()
+{
+  int i, j, move_cnt ;
+  double r, beta , random_num ,ffa_i;
+  for (i = 0; i < MAX_FFA; i++) {
+    fprintf(ffa_file, "%lf ",ffa[i]);
+  }
+  fprintf(ffa_file, "\n");
+  for (i = 0; i < MAX_FFA; i++) {
+    fprintf(ffa_file, "%lf ",light[i]);
+  }
+  fprintf(ffa_file, "\n\n");
+  fflush(ffa_file);
+
+  for(i=0;i<MAX_FFA;i++)
+  {
+    move_cnt = 0 ;
+    ffa_i = ffa[i];
+    for(j=0;j<MAX_FFA;j++)
+    {
+      if(light[i] * 1.1 < light[j])  // brighter and more attractive
+      {
+        move_cnt ++;
+        r =ffa[j] - ffa[i] ;
+        beta = beta0*exp(-gama*pow(r, 2.0));
+        random_num = (   (double)UR(RAND_MAX) / ((double)(RAND_MAX)+(double)(1)) );
+        double tmpf = alpha*(random_num-0.5);
+        ffa[i] = ffa[i] + r*beta+tmpf;
+      }
+    }
+
+    //brightest firefly random
+    random_num = (   (double)UR(RAND_MAX) / ((double)(RAND_MAX)+(double)(1)) );
+    if ( move_cnt < MAX_FFA / 5) {
+      ffa[i] += alpha*(random_num - 0.2)*(ub - lb);
+    }else if (light[i] <= 0.0001 || move_cnt > 4*MAX_FFA / 5 ){
+      ffa[i] += alpha*(random_num - 0.8)*(ub - lb);
+    }
+    findlimits(i);
+  }
+  
+}
+
+void fa_updating(){
+  s32 i;
+
+  // caculate light in ffa
+  
+  for (i = 0; i < MAX_FFA; i++) {
+    double append_finds = 0.0;
+
+    if (havoc_cycles_number_v2[i] > havoc_cycles_number[i]){
+      append_finds = (double)(havoc_finds_number_v2[i] - havoc_finds_number[i]) /
+          (double)(havoc_cycles_number_v2[i] - havoc_cycles_number[i]);
+    }
+    havoc_finds_number[i] = havoc_finds_number_v2[i];
+    havoc_cycles_number[i] = havoc_cycles_number_v2[i];
+
+    if ( f[i] < 0 ){
+      ffa[i] = append_finds*ub;
+      findlimits(i);
+    }
+    f[i] = append_finds;
+
+    light[i] = f[i] / ffa[i];
+
+  }
+
+    // move all fireflies to the better locations
+  move_ffa();
+}
+
+int select_algorithm(int extras) {
+
+  int i_puppet, j_puppet , i;
+  //double total_puppet = 0.0;
+//srandom(time(NULL));
+
+  //double sele = ((double)(random()%10000)*0.0001);
+  //SAYF("select : %f\n",sele);
+  j_puppet = 0;
+
+
+  double range_sele = 0.0;
+
+  for (i = 0 ; i < extras ; i ++) {
+    range_sele += ffa[i];
+  }
+  double sele = ((double)(UR(10000))* 0.0001 * range_sele);
+
+  for (i_puppet = 0; i_puppet < extras; i_puppet++)
+  {
+      if (unlikely(i_puppet == 0))
+      {
+          if (sele < ffa[i_puppet])
+            break;
+          
+      }
+      else
+      {
+          if (sele < ffa[i_puppet])
+          {
+              j_puppet =1;
+              break;
+          }
+      }
+      sele -= ffa[i_puppet];
+  }
+  // if ((j_puppet ==1 && sele + ffa[i_puppet-1] < 0) || (i_puppet + 1 < extras && sele > ffa[i_puppet +  1]))
+  //   FATAL("error select_algorithm");
+  return i_puppet;
+}
+
+
 /* Take the current entry from the queue, fuzz it for a while. This
    function is a tad too long... returns 0 if fuzzed successfully, 1 if
    skipped or bailed out. */
@@ -7397,6 +7628,9 @@ havoc_stage:
 
   stage_cur_byte = -1;
 
+  // this line of reducing alpha is optional
+  alpha = alpha_new(alpha);
+
   /* The havoc stage mutation code is also invoked when splicing files; if the
      splice_cycle variable is set, generate different descriptions and such. */
 
@@ -7433,18 +7667,22 @@ havoc_stage:
 
   for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
 
+    for (i = 0 ; i < MAX_FFA ; i++) {
+      havoc_cycles_number_v3[i] =  havoc_cycles_number_v2[i];
+    }
     u32 use_stacking = 1 << (1 + UR(HAVOC_STACK_POW2));
 
     stage_cur_val = use_stacking;
 
     for (i = 0; i < use_stacking; i++) {
 
-       switch (UR(15 + 2 + (region_level_mutation ? 4 : 0))) {
+       switch (select_algorithm(16 + 2 + (region_level_mutation ? 4 : 0))) {
         case 0:
 
           /* Flip a single bit somewhere. Spooky! */
 
           FLIP_BIT(out_buf, UR(temp_len << 3));
+          havoc_cycles_number_v2[HAVOC_FLIP1]++;
           break;
 
         case 1:
@@ -7452,6 +7690,7 @@ havoc_stage:
           /* Set byte to interesting value. */
 
           out_buf[UR(temp_len)] = interesting_8[UR(sizeof(interesting_8))];
+          havoc_cycles_number_v2[STAGE_INTEREST8]++;
           break;
 
         case 2:
@@ -7472,6 +7711,7 @@ havoc_stage:
 
           }
 
+          havoc_cycles_number_v2[STAGE_INTEREST16]++;
           break;
 
         case 3:
@@ -7492,6 +7732,7 @@ havoc_stage:
 
           }
 
+          havoc_cycles_number_v2[STAGE_INTEREST32]++;
           break;
 
         case 4:
@@ -7499,6 +7740,7 @@ havoc_stage:
           /* Randomly subtract from byte. */
 
           out_buf[UR(temp_len)] -= 1 + UR(ARITH_MAX);
+          havoc_cycles_number_v2[HAVOC_ARITH8_SUB]++;
           break;
 
         case 5:
@@ -7506,6 +7748,7 @@ havoc_stage:
           /* Randomly add to byte. */
 
           out_buf[UR(temp_len)] += 1 + UR(ARITH_MAX);
+          havoc_cycles_number_v2[HAVOC_ARITH8_ADD]++;
           break;
 
         case 6:
@@ -7530,6 +7773,7 @@ havoc_stage:
 
           }
 
+          havoc_cycles_number_v2[HAVOC_ARITH16_SUB]++;
           break;
 
         case 7:
@@ -7554,6 +7798,7 @@ havoc_stage:
 
           }
 
+          havoc_cycles_number_v2[HAVOC_ARITH16_ADD]++;
           break;
 
         case 8:
@@ -7578,6 +7823,7 @@ havoc_stage:
 
           }
 
+          havoc_cycles_number_v2[HAVOC_ARITH32_SUB]++;
           break;
 
         case 9:
@@ -7602,6 +7848,7 @@ havoc_stage:
 
           }
 
+          havoc_cycles_number_v2[HAVOC_ARITH32_ADD]++;
           break;
 
         case 10:
@@ -7611,9 +7858,10 @@ havoc_stage:
              possibility of a no-op. */
 
           out_buf[UR(temp_len)] ^= 1 + UR(255);
+          havoc_cycles_number_v2[HAVOC_RANDOMBYTE]++;
           break;
 
-        case 11 ... 12: {
+        case 11: {
 
             /* Delete bytes. We're making this a bit more likely
                than insertion (the next option) in hopes of keeping
@@ -7634,11 +7882,12 @@ havoc_stage:
 
             temp_len -= del_len;
 
+            havoc_cycles_number_v2[HAVOC_DELETEBYTE]++;
             break;
 
           }
 
-        case 13:
+        case 12:
 
           if (temp_len + HAVOC_BLK_XL < MAX_FILE) {
 
@@ -7686,9 +7935,10 @@ havoc_stage:
 
           }
 
+          havoc_cycles_number_v2[HAVOC_CLONE75]++;
           break;
 
-        case 14: {
+        case 13: {
 
             /* Overwrite bytes with a randomly selected chunk (75%) or fixed
                bytes (25%). */
@@ -7710,6 +7960,7 @@ havoc_stage:
             } else memset(out_buf + copy_to,
                           UR(2) ? UR(256) : out_buf[UR(temp_len)], copy_len);
 
+            havoc_cycles_number_v2[HAVOC_OVERWRITE75]++;
             break;
 
           }
@@ -7717,7 +7968,7 @@ havoc_stage:
         /* Values 15 and 16 can be selected only if there are any extras
            present in the dictionaries. */
 
-        case 15: {
+        case 14: {
             if (extras_cnt + a_extras_cnt == 0) break;
             u8* new_buf = NULL;
             struct dictionary *val_dic;
@@ -7750,11 +8001,12 @@ havoc_stage:
             
             temp_len = encode_len;
 
+            havoc_cycles_number_v2[HAVOC_OVERWRITETOKEN]++;
             break;
 
           }
 
-        case 16: {
+        case 15: {
 
             if (extras_cnt + a_extras_cnt == 0) break;
             if (!out_buf) break;
@@ -7799,13 +8051,14 @@ havoc_stage:
 
             temp_len = encode_len;
 
+            havoc_cycles_number_v2[HAVOC_INSERTTOKEN]++;
             break;
 
           }
         /* Values 17 to 20 can be selected only if region-level mutations are enabled */
 
         /* Replace the current region with a random region from a random seed */
-        case 17: {
+        case 16: {
             u32 src_region_len = 0;
             u8* new_buf = choose_source_region(&src_region_len);
             if (new_buf == NULL) break;
@@ -7814,11 +8067,12 @@ havoc_stage:
             ck_free(out_buf);
             out_buf = new_buf;
             temp_len = src_region_len;
+            havoc_cycles_number_v2[HAVOC_REPLACEREGION]++;
             break;
           }
 
         /* Insert a random region from a random seed to the beginning of the current region */
-        case 18: {
+        case 17: {
             u32 src_region_len = 0;
             u8* src_region = choose_source_region(&src_region_len);
             if (src_region == NULL) break;
@@ -7838,11 +8092,12 @@ havoc_stage:
             ck_free(src_region);
             out_buf = new_buf;
             temp_len += src_region_len;
+            havoc_cycles_number_v2[HAVOC_INSERTREGIONBEG]++;
             break;
           }
 
         /* Insert a random region from a random seed to the end of the current region */
-        case 19: {
+        case 18: {
             u32 src_region_len = 0;
             u8* src_region = choose_source_region(&src_region_len);
             if (src_region == NULL) break;
@@ -7862,11 +8117,12 @@ havoc_stage:
             ck_free(src_region);
             out_buf = new_buf;
             temp_len += src_region_len;
+            havoc_cycles_number_v2[HAVOC_INSERTREGIONEND]++;
             break;
           }
 
         /* Duplicate the current region */
-        case 20: {
+        case 19: {
             if (temp_len * 2 >= MAX_FILE) break;
 
             u8* new_buf = ck_alloc_nozero(temp_len * 2);
@@ -7878,15 +8134,127 @@ havoc_stage:
             ck_free(out_buf);
             out_buf = new_buf;
             temp_len += temp_len;
+            havoc_cycles_number_v2[HAVOC_DUPLICATEGIONEND]++;
             break;
           }
 
-      }
+        case 20: {
+            if (extras_cnt + a_extras_cnt == 0) break;
 
+            /* Overwrite bytes with an extra. */
+
+            if (!extras_cnt || (a_extras_cnt && UR(2))) {
+
+              /* No user-specified extras or odds in our favor. Let's use an
+                 auto-detected one. */
+
+              u32 use_extra = UR(a_extras_cnt);
+              u32 extra_len = a_extras[use_extra].len;
+              u32 insert_at;
+
+              if (extra_len > temp_len) break;
+
+              insert_at = UR(temp_len - extra_len + 1);
+              memcpy(out_buf + insert_at, a_extras[use_extra].data, extra_len);
+
+            } else {
+
+              /* No auto extras or odds in our favor. Use the dictionary. */
+
+              u32 use_extra = UR(extras_cnt);
+              u32 extra_len = extras[use_extra].len;
+              u32 insert_at;
+
+              if (extra_len > temp_len) break;
+
+              insert_at = UR(temp_len - extra_len + 1);
+              memcpy(out_buf + insert_at, extras[use_extra].data, extra_len);
+
+            }
+            havoc_cycles_number_v2[HAVOC_OVERWRITEDIC]++;
+            break;
+
+          }
+
+        case 21: {
+            if (extras_cnt + a_extras_cnt == 0) break;
+
+            u32 use_extra, extra_len, insert_at = UR(temp_len + 1);
+            u8* new_buf;
+
+            /* Insert an extra. Do the same dice-rolling stuff as for the
+               previous case. */
+
+            if (!extras_cnt || (a_extras_cnt && UR(2))) {
+
+              use_extra = UR(a_extras_cnt);
+              extra_len = a_extras[use_extra].len;
+
+              if (temp_len + extra_len >= MAX_FILE) break;
+
+              new_buf = ck_alloc_nozero(temp_len + extra_len);
+
+              /* Head */
+              memcpy(new_buf, out_buf, insert_at);
+
+              /* Inserted part */
+              memcpy(new_buf + insert_at, a_extras[use_extra].data, extra_len);
+
+            } else {
+
+              use_extra = UR(extras_cnt);
+              extra_len = extras[use_extra].len;
+
+              if (temp_len + extra_len >= MAX_FILE) break;
+
+              new_buf = ck_alloc_nozero(temp_len + extra_len);
+
+              /* Head */
+              memcpy(new_buf, out_buf, insert_at);
+
+              /* Inserted part */
+              memcpy(new_buf + insert_at, extras[use_extra].data, extra_len);
+
+            }
+
+            /* Tail */
+            memcpy(new_buf + insert_at + extra_len, out_buf + insert_at,
+                   temp_len - insert_at);
+
+            ck_free(out_buf);
+            out_buf   = new_buf;
+            temp_len += extra_len;
+            havoc_cycles_number_v2[HAVOC_INSERTDIC]++;
+            break;
+
+          }
+
+      }
     }
+
+    struct queue_entry* pre_queue_top;
+    pre_queue_top = queue_top;
 
     if (common_fuzz_stuff(argv, out_buf, temp_len))
       goto abandon_entry;
+
+    havoc_time++ ;
+
+    if (pre_queue_top != queue_top){
+      u64 state_cnt = queue_top->unique_state_count ;
+      for (i = 0; i < MAX_FFA; i++) {
+        if (havoc_cycles_number_v2[i] > havoc_cycles_number_v3[i]) {
+          havoc_finds_number_v2[i] += state_cnt;
+        }
+      }
+      if (havoc_time > FA_LIMIT) {
+        fa_updating();
+        havoc_time = 0 ;
+      }
+    }else {
+      // no interesting mutation , likely
+
+    }
 
     /* out_buf might have been mangled a bit, so let's restore it to its
        original size and shape. */
@@ -7911,6 +8279,12 @@ havoc_stage:
   }
 
   new_hit_cnt = queued_paths + unique_crashes;
+
+  if (havoc_time > FA_LIMIT) {
+    fa_updating();
+    havoc_time = 0 ;
+  }
+  
 
   if (!splice_cycle) {
     stage_finds[STAGE_HAVOC]  += new_hit_cnt - orig_hit_cnt;
@@ -9553,7 +9927,7 @@ int main(int argc, char** argv) {
 
         if (local_port) FATAL("Multiple -l options not supported");
         local_port = atoi(optarg);
-	      if (local_port < 1024 || local_port > 65535) FATAL("Invalid source port number");
+        if (local_port < 1024 || local_port > 65535) FATAL("Invalid source port number");
         break;
 
       default:
@@ -9660,6 +10034,8 @@ int main(int argc, char** argv) {
   if (!out_file) setup_stdio_file();
 
   check_binary(argv[optind]);
+
+  init_ffa();
 
   start_time = get_cur_time();
 
@@ -9842,6 +10218,17 @@ stop_fuzzing:
   }
   clean_token_parse();
   fclose(plot_file);
+  s32 i;
+  for (i = 0; i < MAX_FFA; i++) {
+    fprintf(ffa_file, "%lf ",ffa[i]);
+  }
+  fprintf(ffa_file, "\n");
+  for (i = 0; i < MAX_FFA; i++) {
+    fprintf(ffa_file, "%lf ",light[i]);
+  }
+  fprintf(ffa_file, "\n\n");
+  fflush(ffa_file);
+  fclose(ffa_file);
   destroy_queue();
   destroy_extras();
   ck_free(target_path);
