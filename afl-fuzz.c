@@ -6032,7 +6032,7 @@ void get_token_dict() {
     size_t len = 0;
     ssize_t r;
 
-    FILE *fp = fopen("../../../token", "r");
+    FILE *fp = fopen("/home/ubuntu/experiments/token", "r");
 
     if (fp == NULL) exit(-1);
     
