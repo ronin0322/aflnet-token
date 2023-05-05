@@ -6257,7 +6257,7 @@ enum {
   /* 21 */ HAVOC_INSERTDIC
 };
 
-#define MAX_FFA  22
+#define MAX_FFA  20
 #define FA_LIMIT  400
 
 int Index[MAX_FFA];             // sort of fireflies according to fitness values
@@ -7676,7 +7676,7 @@ havoc_stage:
 
     for (i = 0; i < use_stacking; i++) {
 
-       switch (select_algorithm(16 + 2 + (region_level_mutation ? 4 : 0))) {
+       switch (select_algorithm(16 + (region_level_mutation ? 4 : 0))) {
         case 0:
 
           /* Flip a single bit somewhere. Spooky! */
@@ -7968,7 +7968,7 @@ havoc_stage:
         /* Values 15 and 16 can be selected only if there are any extras
            present in the dictionaries. */
 
-        case 14: {
+        case 20: {
             if (extras_cnt + a_extras_cnt == 0) break;
             u8* new_buf = NULL;
             struct dictionary *val_dic;
@@ -8006,7 +8006,7 @@ havoc_stage:
 
           }
 
-        case 15: {
+        case 21: {
 
             if (extras_cnt + a_extras_cnt == 0) break;
             if (!out_buf) break;
@@ -8138,7 +8138,7 @@ havoc_stage:
             break;
           }
 
-        case 20: {
+        case 14: {
             if (extras_cnt + a_extras_cnt == 0) break;
 
             /* Overwrite bytes with an extra. */
@@ -8176,7 +8176,7 @@ havoc_stage:
 
           }
 
-        case 21: {
+        case 15: {
             if (extras_cnt + a_extras_cnt == 0) break;
 
             u32 use_extra, extra_len, insert_at = UR(temp_len + 1);
