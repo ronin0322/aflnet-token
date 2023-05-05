@@ -6247,14 +6247,14 @@ enum {
   /* 11 */ HAVOC_DELETEBYTE,
   /* 12 */ HAVOC_CLONE75,
   /* 13 */ HAVOC_OVERWRITE75,
-  /* 14 */ HAVOC_OVERWRITETOKEN,
-  /* 15 */ HAVOC_INSERTTOKEN,
-  /* 16 */ HAVOC_REPLACEREGION,
-  /* 17 */ HAVOC_INSERTREGIONBEG,
-  /* 18 */ HAVOC_INSERTREGIONEND,
-  /* 19 */ HAVOC_DUPLICATEGIONEND,
-  /* 20 */ HAVOC_OVERWRITEDIC,
-  /* 21 */ HAVOC_INSERTDIC
+  /* 14 */ HAVOC_REPLACEREGION,
+  /* 15 */ HAVOC_INSERTREGIONBEG,
+  /* 16 */ HAVOC_INSERTREGIONEND,
+  /* 17 */ HAVOC_DUPLICATEGIONEND,
+  /* 18 */ HAVOC_OVERWRITEDIC,
+  /* 19 */ HAVOC_INSERTDIC,
+  /* 20 */ HAVOC_OVERWRITETOKEN,
+  /* 21 */ HAVOC_INSERTTOKEN
 };
 
 #define MAX_FFA  22
@@ -7676,7 +7676,7 @@ havoc_stage:
 
     for (i = 0; i < use_stacking; i++) {
 
-       switch (select_algorithm(16 + 2 + (region_level_mutation ? 4 : 0))) {
+       switch (select_algorithm(16 + 2+(region_level_mutation ? 4 : 0))) {
         case 0:
 
           /* Flip a single bit somewhere. Spooky! */
@@ -7690,7 +7690,7 @@ havoc_stage:
           /* Set byte to interesting value. */
 
           out_buf[UR(temp_len)] = interesting_8[UR(sizeof(interesting_8))];
-          havoc_cycles_number_v2[STAGE_INTEREST8]++;
+          havoc_cycles_number_v2[HAVOC_INTEREST8]++;
           break;
 
         case 2:
@@ -7711,7 +7711,7 @@ havoc_stage:
 
           }
 
-          havoc_cycles_number_v2[STAGE_INTEREST16]++;
+          havoc_cycles_number_v2[HAVOC_INTEREST16]++;
           break;
 
         case 3:
@@ -7732,7 +7732,7 @@ havoc_stage:
 
           }
 
-          havoc_cycles_number_v2[STAGE_INTEREST32]++;
+          havoc_cycles_number_v2[HAVOC_INTEREST32]++;
           break;
 
         case 4:
@@ -7968,7 +7968,7 @@ havoc_stage:
         /* Values 15 and 16 can be selected only if there are any extras
            present in the dictionaries. */
 
-        case 14: {
+        case 20: {
             if (extras_cnt + a_extras_cnt == 0) break;
             u8* new_buf = NULL;
             struct dictionary *val_dic;
@@ -8006,7 +8006,7 @@ havoc_stage:
 
           }
 
-        case 15: {
+        case 21: {
 
             if (extras_cnt + a_extras_cnt == 0) break;
             if (!out_buf) break;
@@ -8138,7 +8138,7 @@ havoc_stage:
             break;
           }
 
-        case 20: {
+        case 14: {
             if (extras_cnt + a_extras_cnt == 0) break;
 
             /* Overwrite bytes with an extra. */
@@ -8176,7 +8176,7 @@ havoc_stage:
 
           }
 
-        case 21: {
+        case 15: {
             if (extras_cnt + a_extras_cnt == 0) break;
 
             u32 use_extra, extra_len, insert_at = UR(temp_len + 1);
