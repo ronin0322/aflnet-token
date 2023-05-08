@@ -5812,7 +5812,7 @@ static u32 calculate_score(struct queue_entry* q) {
       break;
 
     case QUAD:
-      factor = q->unique_state_count * q->unique_state_count / (fuzz == 0 ? 1 : fuzz);
+      factor = (u32) (sqrt((double)q->unique_state_count) / (fuzz == 0 ? 1 : fuzz));
       break;
 
     default:
