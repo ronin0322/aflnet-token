@@ -7676,7 +7676,7 @@ havoc_stage:
 
     for (i = 0; i < use_stacking; i++) {
 
-       switch (select_algorithm(16 + 2+(region_level_mutation ? 4 : 0))) {
+       switch (UR(14 + 2 + (region_level_mutation ? 4 : 0))) {
         case 0:
 
           /* Flip a single bit somewhere. Spooky! */
