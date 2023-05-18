@@ -6304,7 +6304,7 @@ EXP_ST void init_seeds_wirte_file(void) {
   u8* tmp;
   s32 fd , i;
 
-  tmp = alloc_printf("%s/fuzz_ffa", out_dir);
+  tmp = alloc_printf("%s/fuzz_seeds", out_dir);
   fd = open(tmp, O_WRONLY | O_CREAT | O_EXCL, 0600);
   if (fd < 0) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
