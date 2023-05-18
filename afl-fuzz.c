@@ -6282,6 +6282,7 @@ static u64 havoc_finds_number[MAX_FFA],           /* Patterns found per fuzz sta
            havoc_cycles_number[MAX_FFA];
 
 static FILE* ffa_file;
+static FILE* seeds_file;
 
 EXP_ST void init_ffa_wirte_file(void) {
 
@@ -6298,6 +6299,20 @@ EXP_ST void init_ffa_wirte_file(void) {
   fprintf(ffa_file, "ffa data\n");
 }
 
+EXP_ST void init_seeds_wirte_file(void) {
+
+  u8* tmp;
+  s32 fd , i;
+
+  tmp = alloc_printf("%s/fuzz_ffa", out_dir);
+  fd = open(tmp, O_WRONLY | O_CREAT | O_EXCL, 0600);
+  if (fd < 0) PFATAL("Unable to create '%s'", tmp);
+  ck_free(tmp);
+
+  seeds_file = fdopen(fd, "a");
+  if (!seeds_file) PFATAL("fdopen() failed");
+  fprintf(seeds_file, "seeds_file data\n");
+}
 
 // initialize the firefly population
 void init_ffa()
@@ -10059,6 +10074,7 @@ int main(int argc, char** argv) {
 
   /* Woop woop woop */
   init_token_parse();
+  init_seeds_wirte_file();
   if (!not_on_tty) {
     sleep(4);
     start_time += 4000;
@@ -10088,7 +10104,10 @@ int main(int argc, char** argv) {
 
         selected_seed = choose_seed(target_state_id, seed_selection_algo);
       }
-
+  
+      fprintf(seeds_file, "%d %s",selected_seed->index,selected_seed->fname);
+      fprintf(seeds_file, "\n\n");
+      fflush(seeds_file);
       /* Seek to the selected seed */
       if (selected_seed) {
         if (!queue_cur) {
@@ -10229,6 +10248,7 @@ stop_fuzzing:
   fprintf(ffa_file, "\n\n");
   fflush(ffa_file);
   fclose(ffa_file);
+  fclose(seeds_file);
   destroy_queue();
   destroy_extras();
   ck_free(target_path);
